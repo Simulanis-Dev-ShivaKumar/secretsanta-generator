@@ -1,89 +1,89 @@
 pipeline {
     agent any
-    tools {
+    tools{
         jdk 'jdk17'
         maven 'maven3'
     }
-    environment {
-        SCANNER_HOME = tool 'sonar-scanner'
+    environment{
+        SCANNER_HOME= tool 'sonar-scanner'
     }
     stages {
-        stage('Git Checkout') {
+        stage('git-checkout') {
             steps {
-                git 'https://github.com/Simulanis-Dev-ShivaKumar/asset-library-frontend.git'
+                git 'https://github.com/jaiswaladi246/secretsanta-generator.git'
             }
         }
-        stage('Code Compile') {
+        stage('Code-Compile') {
             steps {
-                sh "mvn clean compile"
+               sh "mvn clean compile"
             }
         }
         stage('Unit Tests') {
             steps {
-                sh "mvn test"
+               sh "mvn test"
             }
         }
-        stage('OWASP Dependency Check') {
+		stage('OWASP Dependency Check') {
             steps {
-                dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DC'
-                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+               dependencyCheck additionalArguments: ' --scan ./ ', odcInstallation: 'DC'
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
         stage('Sonar Analysis') {
             steps {
-                withSonarQubeEnv('sonar') {
-                    sh '''$SCANNER_HOME/bin/sonar-scanner \
-                        -Dsonar.projectName=asset-library-frontend \
-                        -Dsonar.java.binaries=. \
-                        -Dsonar.projectKey=asset-library-frontend'''
-                }
+               withSonarQubeEnv('sonar'){
+                   sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Santa \
+                   -Dsonar.java.binaries=. \
+                   -Dsonar.projectKey=Santa '''
+               }
             }
         }
-        stage('Code Build') {
+		
+        stage('Code-Build') {
             steps {
-                sh "mvn clean package"
+               sh "mvn clean package"
             }
         }
-        stage('Docker Build') {
+         stage('Docker Build') {
             steps {
-                script {
-                    withDockerRegistry(credentialsId: 'docker-cred') {
-                        sh "docker build -t shiva7475/asset-library-frontend:latest ."
-                    }
-                }
+               script{
+                   withDockerRegistry(credentialsId: 'docker-cred') {
+                    sh "docker build -t  santa123 . "
+                 }
+               }
             }
         }
         stage('Docker Push') {
             steps {
-                script {
-                    withDockerRegistry(credentialsId: 'docker-cred') {
-                        sh "docker push shiva7475/asset-library-frontend:latest"
-                    }
-                }
+               script{
+                   withDockerRegistry(credentialsId: 'docker-cred') {
+                    sh "docker tag santa123 adijaiswal/santa123:latest"
+                    sh "docker push adijaiswal/santa123:latest"
+                 }
+               }
             }
         }
+        	
         stage('Docker Image Scan') {
             steps {
-                sh "trivy image shiva7475/asset-library-frontend:latest"
+               sh "trivy image adijaiswal/santa123:latest "
+            }
+        }}
+         post {
+            always {
+                emailext (
+                    subject: "Pipeline Status: ${BUILD_NUMBER}",
+                    body: '''<html>
+                                <body>
+                                    <p>Build Status: ${BUILD_STATUS}</p>
+                                    <p>Build Number: ${BUILD_NUMBER}</p>
+                                    <p>Check the <a href="${BUILD_URL}">console output</a>.</p>
+                                </body>
+                            </html>''',
+                    to: 'jaiswaladi246@gmail.com',
+                    from: 'jenkins@example.com',
+                    replyTo: 'jenkins@example.com',
+                    mimeType: 'text/html'
+                )
             }
         }
-    }
-    post {
-        always {
-            emailext (
-                subject: "Pipeline Status: Build #${BUILD_NUMBER}",
-                body: '''<html>
-                            <body>
-                                <p>Build Status: ${BUILD_STATUS}</p>
-                                <p>Build Number: ${BUILD_NUMBER}</p>
-                                <p>Check the <a href="${BUILD_URL}">console output</a>.</p>
-                            </body>
-                        </html>''',
-                to: 'shivakumar@simulanis.com',
-                from: 'jenkins@example.com',
-                replyTo: 'jenkins@example.com',
-                mimeType: 'text/html'
-            )
-        }
-    }
-}
